@@ -30,7 +30,7 @@ dependencies {
 	// -------------------------------------------------------------------------
 	// Spring Boot
 	// -------------------------------------------------------------------------
-	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
@@ -48,11 +48,11 @@ dependencies {
 	// -------------------------------------------------------------------------
 	implementation("org.flywaydb:flyway-core")
 	implementation("org.flywaydb:flyway-database-postgresql")
-	implementation("io.jsonwebtoken:jjwt-api")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
 
 	runtimeOnly("org.postgresql:postgresql")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
 	// -------------------------------------------------------------------------
 	// Lombok
@@ -77,7 +77,6 @@ dependencies {
 dependencyManagement {
 	imports {
 		mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
-		mavenBom("io.jsonwebtoken:jjwt-bom:0.12.6")
 		mavenBom("org.testcontainers:testcontainers-bom:1.21.3")
 	}
 }
