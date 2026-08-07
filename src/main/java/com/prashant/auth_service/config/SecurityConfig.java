@@ -44,8 +44,12 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register",
-                                "/api/auth/refresh", "/api/auth/validate").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login", "/auth-service/login",
+                                "/api/auth/register", "/auth-service/register",
+                                "/api/auth/refresh", "/auth-service/refresh",
+                                "/api/auth/validate", "/auth-service/validate"
+                        ).permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/roles").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/permissions").hasRole("ADMIN")
