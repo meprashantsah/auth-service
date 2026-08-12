@@ -21,35 +21,19 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * User Service - Manages users, roles, and permissions (RBAC).
- *
- * Provides CRUD operations for the authorization domain.
- * Protected by @PreAuthorize in controllers.
+ * RBAC Service - Manages roles and permissions, and their assignment to
+ * identity users. The user *profile* directory lives in the user-service.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class RbacService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
-    // ==================== USER MANAGEMENT ====================
-
-    @Transactional(readOnly = true)
-    public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::mapToUserDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public UserDto getUserById(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new AuthException("User not found"));
-        return mapToUserDto(user);
-    }
+    // ==================== ROLE ASSIGNMENT ====================
 
     @Transactional
     public UserDto assignRoleToUser(UUID userId, String roleName) {

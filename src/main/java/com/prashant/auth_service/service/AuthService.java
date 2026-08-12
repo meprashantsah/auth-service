@@ -1,5 +1,6 @@
 package com.prashant.auth_service.service;
 
+import com.prashant.auth_service.client.UserServiceClient;
 import com.prashant.auth_service.dto.*;
 import com.prashant.auth_service.entity.Permission;
 import io.jsonwebtoken.Claims;
@@ -49,6 +50,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
+    private final UserServiceClient userServiceClient;
 
     @Value("${security.max-login-attempts:5}")
     private int maxLoginAttempts;
@@ -144,6 +146,12 @@ public class AuthService {
         }
 
         User saved = userRepository.save(user);
+
+        // Create the user profile in the user-service (same logical user id).
+        // Throwing here rolls back the identity creation so registration is atomic.
+        userServiceClient.createUserProfile(
+                saved.getId(), saved.getUsername(), saved.getUsername(), saved.getEmail());
+
         log.info("User registered successfully: {}", saved.getUsername());
 
         return mapToUserDto(saved);

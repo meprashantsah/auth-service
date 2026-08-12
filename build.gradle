@@ -22,6 +22,7 @@ ext {
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
     }
 }
 
@@ -42,6 +43,7 @@ dependencies {
     // Database
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -62,6 +64,9 @@ dependencies {
 
     //Netflix eureka client - registry
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+
+    // Load-balanced RestClient for service-to-service calls (user-service)
+    implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
 }
 
 tasks.named('test') {
