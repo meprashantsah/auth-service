@@ -47,6 +47,8 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private UserServiceClient userServiceClient;
+    @Mock
+    private InviteService inviteService;
 
     private AuthService authService;
 
@@ -56,7 +58,8 @@ class AuthServiceTest {
     void setUp() {
         authService = new AuthService(
                 authenticationManager, jwtTokenProvider, userRepository, roleRepository,
-                refreshTokenService, tokenBlacklistService, passwordEncoder, userServiceClient);
+                refreshTokenService, tokenBlacklistService, passwordEncoder, userServiceClient,
+                inviteService);
         userId = UUID.randomUUID();
     }
 
@@ -116,6 +119,53 @@ class AuthServiceTest {
                 registerRequest("taken", "x@example.com")))
                 .isInstanceOf(AuthException.class);
 
+        verify(userServiceClient, never()).createUserProfile(any(), any(), any(), any());
+    }
+
+    @Test
+    void register_redeemsInviteAndGrantsItsRole() {
+        when(userRepository.existsByUsername("bob")).thenReturn(false);
+        when(userRepository.existsByEmail("bob@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("$2a$hash");
+        when(roleRepository.findByName("USER"))
+                .thenReturn(Optional.of(Role.builder().name("USER").permissions(new HashSet<>()).build()));
+        when(inviteService.redeem("tok-1")).thenReturn("ADMIN");
+        when(roleRepository.findByName("ADMIN"))
+                .thenReturn(Optional.of(Role.builder().name("ADMIN").permissions(new HashSet<>()).build()));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(userId);
+            return u;
+        });
+
+        RegisterRequest request = registerRequest("bob", "bob@example.com");
+        request.setInviteToken("tok-1");
+        authService.register(request);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().getRoles())
+                .extracting(Role::getName)
+                .containsExactlyInAnyOrder("USER", "ADMIN");
+        verify(userServiceClient).createUserProfile(userId, "bob", "bob", "bob@example.com");
+    }
+
+    @Test
+    void register_rejectsInvalidInvite() {
+        when(userRepository.existsByUsername("bob")).thenReturn(false);
+        when(userRepository.existsByEmail("bob@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("$2a$hash");
+        when(roleRepository.findByName("USER"))
+                .thenReturn(Optional.of(Role.builder().name("USER").permissions(new HashSet<>()).build()));
+        when(inviteService.redeem("tok-1"))
+                .thenThrow(new AuthException("This invite has expired"));
+
+        RegisterRequest request = registerRequest("bob", "bob@example.com");
+        request.setInviteToken("tok-1");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("expired");
         verify(userServiceClient, never()).createUserProfile(any(), any(), any(), any());
     }
 }

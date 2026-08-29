@@ -51,6 +51,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final PasswordEncoder passwordEncoder;
     private final UserServiceClient userServiceClient;
+    private final InviteService inviteService;
 
     @Value("${security.max-login-attempts:5}")
     private int maxLoginAttempts;
@@ -136,13 +137,15 @@ public class AuthService {
                 .orElseGet(() -> roleRepository.save(Role.builder().name("USER").description("Default user role").build()));
         user.addRole(userRole);
 
-        // Assign additional roles from request
-        if (request.getRoles() != null) {
-            for (String roleName : request.getRoles()) {
-                Role role = roleRepository.findByName(roleName)
-                        .orElseThrow(() -> new AuthException("Role not found: " + roleName));
-                user.addRole(role);
-            }
+        // A workspace invite grants its fixed role on top of USER. The role is
+        // decided server-side when the invite was created — the client cannot
+        // self-assign privileges through public registration.
+        if (request.getInviteToken() != null && !request.getInviteToken().isBlank()) {
+            String invitedRole = inviteService.redeem(request.getInviteToken());
+            Role role = roleRepository.findByName(invitedRole)
+                    .orElseThrow(() -> new AuthException("Role not found: " + invitedRole));
+            user.addRole(role);
+            log.info("User {} registered via invite for role {}", user.getUsername(), invitedRole);
         }
 
         User saved = userRepository.save(user);

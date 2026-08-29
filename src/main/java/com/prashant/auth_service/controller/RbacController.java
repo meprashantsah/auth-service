@@ -19,12 +19,14 @@ import java.util.UUID;
  * RBAC Controller - Role & permission management (Admin only).
  *
  * Endpoints:
- * - POST   /api/auth/users/{id}/roles   → Assign role to identity user
- * - DELETE /api/auth/users/{id}/roles   → Remove role from identity user
- * - POST   /api/auth/roles              → Create new role
- * - GET    /api/auth/roles              → List all roles
- * - POST   /api/auth/permissions        → Create new permission
- * - GET    /api/auth/permissions        → List all permissions
+ * - GET    /api/auth/users                  → List all identity users
+ * - GET    /api/auth/users/{id}             → Get identity user details
+ * - POST   /api/auth/users/{id}/roles       → Assign role to identity user
+ * - DELETE /api/auth/users/{id}/roles       → Remove role from identity user
+ * - POST   /api/auth/roles                  → Create new role
+ * - GET    /api/auth/roles                  → List all roles
+ * - POST   /api/auth/permissions            → Create new permission
+ * - GET    /api/auth/permissions            → List all permissions
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -33,8 +35,28 @@ public class RbacController {
 
     private final RbacService rbacService;
 
+    @GetMapping("/users")
+    @PreAuthorize("hasAuthority('user:read')")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(rbacService.getAllUsers());
+    }
+
+    @GetMapping("/users/{id}")
+    @PreAuthorize("hasAuthority('user:read')")
+    public ResponseEntity<UserDto> getUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(rbacService.getUserById(id));
+    }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasAuthority('user:delete')")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id,
+                                           @RequestHeader("X-User-Id") UUID actorId) {
+        rbacService.deleteUser(id, actorId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/users/{id}/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('role:assign')")
     public ResponseEntity<UserDto> assignRole(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -42,7 +64,7 @@ public class RbacController {
     }
 
     @DeleteMapping("/users/{id}/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('role:assign')")
     public ResponseEntity<UserDto> removeRole(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -50,7 +72,7 @@ public class RbacController {
     }
 
     @PostMapping("/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('role:create')")
     public ResponseEntity<RoleDto> createRole(@RequestBody Map<String, Object> request) {
         String name = (String) request.get("name");
         String description = (String) request.get("description");
@@ -64,13 +86,20 @@ public class RbacController {
     }
 
     @GetMapping("/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('role:read')")
     public ResponseEntity<List<RoleDto>> getAllRoles() {
         return ResponseEntity.ok(rbacService.getAllRoles());
     }
 
+    @DeleteMapping("/roles/{id}")
+    @PreAuthorize("hasAuthority('role:delete')")
+    public ResponseEntity<Void> deleteRole(@PathVariable UUID id) {
+        rbacService.deleteRole(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/permissions")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('permission:create')")
     public ResponseEntity<PermissionDto> createPermission(@RequestBody Map<String, String> request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(rbacService.createPermission(
@@ -82,8 +111,15 @@ public class RbacController {
     }
 
     @GetMapping("/permissions")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('permission:read')")
     public ResponseEntity<List<PermissionDto>> getAllPermissions() {
         return ResponseEntity.ok(rbacService.getAllPermissions());
+    }
+
+    @DeleteMapping("/permissions/{id}")
+    @PreAuthorize("hasAuthority('permission:delete')")
+    public ResponseEntity<Void> deletePermission(@PathVariable UUID id) {
+        rbacService.deletePermission(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,7 +3,6 @@ package com.prashant.auth_service.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -25,7 +24,7 @@ import com.prashant.auth_service.security.UserDetailsServiceImpl;
  * - Stateless session (no server-side sessions)
  * - BCrypt password encoding
  * - JWT filter for token validation
- * - Role-based method security (@PreAuthorize)
+ * - Permission-based method security (@PreAuthorize)
  * - Public paths for auth endpoints
  */
 @Configuration
@@ -48,11 +47,10 @@ public class SecurityConfig {
                                 "/api/auth/login", "/auth-service/login",
                                 "/api/auth/register", "/auth-service/register",
                                 "/api/auth/refresh", "/auth-service/refresh",
-                                "/api/auth/validate", "/auth-service/validate"
+                                "/api/auth/validate", "/auth-service/validate",
+                                "/api/auth/invites/validate", "/auth-service/invites/validate"
                         ).permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/roles").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/auth/permissions").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

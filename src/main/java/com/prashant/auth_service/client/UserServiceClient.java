@@ -39,7 +39,22 @@ public class UserServiceClient {
             log.info("User profile created in user-service for: {}", username);
         } catch (RestClientException e) {
             log.error("Failed to create user profile in user-service for: {}", username, e);
-            throw new AuthException("Registration failed, please try again later", e);
+            throw new AuthException("Registration failed: user-service rejected the request", e);
+        } catch (Exception e) {
+            // E.g. the load-balancer ("No instances available for user-service"),
+            // discovery or a connection failure - anything that is not a normal
+            // HTTP exchange. Surface the real cause instead of a generic 500.
+            log.error("Unexpected failure calling user-service for: {}", username, e);
+            throw new AuthException("Registration failed: " + rootMessage(e), e);
         }
+    }
+
+    private String rootMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        return msg != null && !msg.isBlank() ? msg : "user-service is unavailable";
     }
 }

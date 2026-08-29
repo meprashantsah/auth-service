@@ -6,6 +6,8 @@ eureka:
     hostname: localhost
     instance-id: ${spring.application.name}:${random.value}
     prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
@@ -55,6 +57,10 @@ security:
   bcrypt-strength: 12
   max-login-attempts: 5
   lockout-duration: 900
+
+app:
+  invite:
+    default-valid-days: 7
 
 # Shared secret for service-to-service calls (must equal user-service's
 # INTERNAL_API_KEY). Provided via environment variables.

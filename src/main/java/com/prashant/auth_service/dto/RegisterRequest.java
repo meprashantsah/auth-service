@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.util.Set;
-
 @Data
 public class RegisterRequest {
 
@@ -23,5 +21,10 @@ public class RegisterRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    private Set<String> roles;
+    /**
+     * Optional workspace invite token. When present the invite's fixed role is
+     * granted on top of the default USER role. Roles are never taken from the
+     * client — the token is the only way public registration gains privileges.
+     */
+    private String inviteToken;
 }

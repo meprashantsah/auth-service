@@ -80,7 +80,7 @@ Runs on a random port (`server.port: 0`) and registers with Eureka.
 
 1. Copy the **public key** to the Gateway's `application.yaml`
 2. Gateway validates tokens locally using that public key
-3. Gateway forwards `X-User-Id`, `X-Username`, `X-Roles` headers to downstream services
+3. Gateway forwards `X-User-Id`, `X-Username` headers to downstream services
 
 ## Integration with User Service
 

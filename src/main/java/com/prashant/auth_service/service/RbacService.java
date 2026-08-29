@@ -14,6 +14,7 @@ import com.prashant.auth_service.exception.AuthException;
 import com.prashant.auth_service.repository.PermissionRepository;
 import com.prashant.auth_service.repository.RoleRepository;
 import com.prashant.auth_service.repository.UserRepository;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,41 @@ public class RbacService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+
+    // ==================== IDENTITY USER DIRECTORY ====================
+
+    @Transactional(readOnly = true)
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+                .map(this::mapToUserDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto getUserById(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException("User not found"));
+        return mapToUserDto(user);
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId, UUID actorId) {
+        if (userId.equals(actorId)) {
+            throw new AuthException("You cannot delete your own account");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException("User not found"));
+
+        boolean isSuperAdmin = user.getRoles().stream()
+                .anyMatch(r -> r.getName().equalsIgnoreCase("SUPERADMIN"));
+        if (isSuperAdmin && userRepository.countByRoles_Name("SUPERADMIN") <= 1) {
+            throw new AuthException("Cannot delete the last SUPERADMIN");
+        }
+
+        user.getRoles().clear();
+        userRepository.delete(user);
+        log.info("User deleted: {} ({})", user.getUsername(), userId);
+    }
 
     // ==================== ROLE ASSIGNMENT ====================
 
@@ -94,6 +130,19 @@ public class RbacService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void deleteRole(UUID roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new AuthException("Role not found"));
+        if (!role.getUsers().isEmpty()) {
+            throw new AuthException("Role is still assigned to users and cannot be deleted");
+        }
+        role.getUsers().clear();
+        role.getPermissions().clear();
+        roleRepository.delete(role);
+        log.info("Role deleted: {}", role.getName());
+    }
+
     // ==================== PERMISSION MANAGEMENT ====================
 
     @Transactional
@@ -119,6 +168,17 @@ public class RbacService {
         return permissionRepository.findAll().stream()
                 .map(this::mapToPermissionDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deletePermission(UUID permissionId) {
+        Permission perm = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new AuthException("Permission not found"));
+        if (roleRepository.existsByPermissions_Id(permissionId)) {
+            throw new AuthException("Permission is assigned to a role and cannot be deleted");
+        }
+        permissionRepository.delete(perm);
+        log.info("Permission deleted: {}", perm.getName());
     }
 
     // ==================== MAPPERS ====================
